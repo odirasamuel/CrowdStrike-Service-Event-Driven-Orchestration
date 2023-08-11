@@ -1,0 +1,29 @@
+aws_region: tbd
+s3_location: tbd
+software_bucket: "{{ s3_location }}/software"
+comments: "{{  }}"
+
+
+#For authenticating to ServiceNow Instance
+sn_host: https://instance_id.service-now.com
+sn_username: tbd
+sn_password: tbd
+sn_grant_type: tbd (password or refresh_token)
+sn_access_token: tbd
+sn_client_id: tbd
+sn_client_secret: tbd
+
+#PagerDuty
+pagerduty_service_id: tbd
+pagerduty_api_token: tbd
+pagerduty_user_email: tbd
+service_id: tbd
+priority_id: tbd
+incident_key: baf7cf21b1da41b4b0221008339ff357-tbd
+escalation_policy_id: tbd
+
+
+#Variables to be fetch from servicenow
+short_description: ""
+long_description: ""
+incident_number: ""
