@@ -1,0 +1,42 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: ec2
+platforms:
+  - name: instance
+    managed: true
+    image_owner: 891599952938
+    image: ami-0ba2a2adf6818d4f7
+    vpc_subnet_id: subnet-0f1ffb961402fd77a
+    priviledge: True
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      stdout_callback: yaml
+  lint:
+    name: ansible-lint
+  playbooks:
+    create: create.yml
+    converge: playbook.yml
+    verify: ../../tests/test.yml
+    destroy: ../../tests/destroy.yml
+  ansible_args: 
+    - --inventory=inventory.ini
+verifier:
+  name: ansible
+  lint:
+    name: ansible-lint
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - destroy
+    - syntax
+    - create
+#    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy

@@ -1,0 +1,13 @@
+---
+- name: Converge
+  hosts: deltek_automation
+  vars_files:
+    - ../../defaults/main.yml
+  tasks:
+  - name: wait for hosts to be available
+    wait_for_connection:
+      connect_timeout: 5
+      timeout: 300
+      sleep: 10
+
+  - import_tasks: ../../tasks/main.yml
