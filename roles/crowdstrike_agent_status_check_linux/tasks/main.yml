@@ -1,0 +1,3 @@
+---
+- name: Check CS status for Linux
+  include_tasks: check_crowdstrike_status_linux.yml
