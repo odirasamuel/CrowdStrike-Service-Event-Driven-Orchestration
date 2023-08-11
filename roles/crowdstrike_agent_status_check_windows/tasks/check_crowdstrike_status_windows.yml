@@ -1,0 +1,35 @@
+---
+#Check if crowdstrike is installed (Windows)
+- name: Check if CrowdStrike is installed
+  win_service: 
+    name: "{{ crowdstrike_service_name }}"
+  register: crowdstrike_installed_output
+  tags: status
+
+- name: Crowdstrike installed status (Windows)
+  set_fact:
+    crowdstrike_installed: "{{ crowdstrike_installed_output.exists }}"
+  tags: status
+
+#Check if crowdstrike is running (Windows)
+- name: Check if CrowdStrike is running
+  win_service:
+    name: "{{ crowdstrike_service_name }}"
+    state: started
+  register: crowdsrike_service_running
+  when: 
+    - crowdstrike_installed
+  tags: status
+
+- name: Crowdstrike running status (Windows)
+  set_fact:
+    crowdstrike_running: "{{ crowdsrike_service_running.exists }}"
+  when: crowdstrike_installed
+  tags: status
+
+- name: Crowdstrike status (Windows)
+  set_fact:
+    is_crowdstrike_status_check_not_installed_and_not_running: "{{ not crowdstrike_installed }}"
+    is_crowdstrike_status_check_installed_and_not_running: "{{ crowdstrike_installed and not crowdstrike_running }}"
+    is_crowdstrike_status_check_installed_and_running: "{{ crowdstrike_installed and crowdstrike_running }}"
+  tags: always

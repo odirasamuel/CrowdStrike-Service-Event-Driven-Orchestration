@@ -1,0 +1,3 @@
+---
+- name: Check CS status for windows
+  include_tasks: check_crowdstrike_status_windows.yml
