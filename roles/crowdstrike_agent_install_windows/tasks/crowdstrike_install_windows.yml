@@ -1,0 +1,69 @@
+---
+- name: Get Crowdstrike from S3 Bucket
+  win_shell: |
+    Copy-S3Object -BucketName {{ software_bucket }} -Region {{ aws_region }} -Key {{ crowdstrike_win_exe }} -LocalFolder {{ ansible_env.TEMP }}
+  args:
+    creates: "{{ ansible_env.TEMP }}\\{{ crowdstrike_win_exe }}"
+  tags: download
+
+- name: Check if Crowdstrike installer file was downloaded
+  stat:
+    path: "{{ ansible_env.TEMP }}\\{{ crowdstrike_win_exe }}"
+  register: win_exe_file_downloaded
+  tags: download
+
+- name: Set fact based on exe file download status
+  set_fact:
+    win_exe_file_download_failed: true
+  when: not win_exe_file_downloaded.stat.exists
+  tags: download
+
+- name: Install Crowdstrike on Windows
+  become: true
+  become_method: runas
+  become_user: SYSTEM
+  win_package:
+    path: "{{ ansible_env.TEMP }}\\{{ crowdstrike_win_exe }}"
+    state: present
+    creates_service: "{{ crowdstrike_service_name }}"
+    arguments: "/install /quiet CID={{ crowdstrike_cid }} {{ falcon_windows_install_args }}"
+  register: service_installed
+  until: service_installed is not failed
+  retries: 3
+  delay: 60
+  tags: install
+
+- name: Set fact based on CrowdStrike Service install status
+  set_fact:
+    crowdstrike_service_installed: "{{ service_installed is not failed }}"
+  when: not win_exe_file_download_failed
+  tags: install
+
+- name: Start Crowdstrike Service
+  win_service:
+    name: "{{ crowdstrike_service_name }}"
+    state: started
+  register: service_start
+  until: service_start is not failed
+  retries: 3
+  delay: 60
+  tags: start
+
+- name: Set fact based on CrowdStrike Service start status
+  set_fact:
+    crowdstrike_service_started: "{{ service_start is not failed }}"
+  when: crowdstrike_service_installed
+  tags: start
+
+- name: Delete Installer from Temp Directory
+  win_file:
+    path: "{{ ansible_env.TEMP }}\\{{ crowdstrike_win_exe }}"
+    state: absent
+  tags: cleanup
+
+- name: Crowdstrike Install status (Windows)
+  set_fact:
+    is_crowdstrike_not_installed_and_not_running: "{{ not crowdstrike_service_installed and not crowdstrike_service_started }}"
+    is_crowdstrike_installed_and_not_running: "{{ crowdstrike_service_installed and not crowdstrike_service_started }}"
+    is_crowdstrike_installed_and_running: "{{ crowdstrike_service_installed and crowdstrike_service_started }}"
+  tags: always
