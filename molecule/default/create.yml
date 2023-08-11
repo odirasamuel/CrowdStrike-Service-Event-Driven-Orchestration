@@ -1,0 +1,59 @@
+---
+- name: ec2 test
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: get local user name
+      become: false
+      local_action: command whoami
+      register: username_on_the_host
+
+    - name: Create instance profile
+      terraform:
+        project_path: "../../../terraform_instance_profile"
+        state: present
+        force_init: true
+        variables_file: "{{ playbook_dir }}/../../tests/instance_profile.tfvars"
+        backend_config:
+          region: us-east-1
+      register: tf_ip_module
+
+    - name: output
+      debug:
+        msg: "{{ tf_ip_module.outputs.name.value }}"
+
+    - name: Create hosts via terraform module
+      terraform:
+        project_path: '../../../terraform_compute/'
+        state: present
+        force_init: true
+        variables_file: "{{ playbook_dir }}/../../tests/test.tfvars"
+        variables:
+          product_owner: "{{ username_on_the_host.stdout }}@deltek.com"
+          iam_instance_profile: "{{ tf_ip_module.outputs.name.value }}"
+        backend_config:
+          region: us-east-1
+      register: tf_module
+
+    - name: add hosts to in memory inventory
+      add_host:
+        name: "{{ item.value }}"
+        groups: deltek_automation
+        ansible_user: "{{user}}"
+        ansible_password: "{{password}}"
+        ansible_connection: winrm
+        ansible_winrm_transport: basic
+        ansible_winrm_scheme: https
+        ansible_winrm_port: 5986
+        ansible_winrm_server_cert_validation: ignore
+      loop: "{{ tf_module.outputs.server_public_ips.value|dict2items }}"
+
+    - name: Include Hosts in Molecule Inventory.ini
+      copy:
+        dest: inventory.ini
+        content: "[deltek_automation]\n{{ item.value }}\n[deltek_automation:vars]\nansible_connection=winrm\nansible_user={{user}}\nansible_password={{password}}\nansible_winrm_server_cert_validation=ignore\nansible_winrm_transport=basic\nansible_winrm_scheme=https\nansible_winrm_port=5986"
+      loop: "{{ tf_module.outputs.server_public_ips.value|dict2items }}"
+
+    - name: wait for hosts to initialize
+      wait_for:
+        timeout: 300
