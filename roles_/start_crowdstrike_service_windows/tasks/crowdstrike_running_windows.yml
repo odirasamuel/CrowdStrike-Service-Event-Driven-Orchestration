@@ -1,0 +1,23 @@
+---
+- name: Start Crowdstrike Service
+  win_service:
+    name: "{{ crowdstrike_service_name }}"
+    state: started
+  register: service_start
+  until: service_start is not failed
+  retries: 3
+  delay: 60
+  tags: start
+
+- name: Set fact based on CrowdStrike Service start status
+  set_fact:
+    crowdstrike_service_started: "{{ service_start is not failed }}"
+  when: crowdstrike_service_installed
+  tags: start
+
+# - name: Crowdstrike Install status (Windows)
+#   set_fact:
+#     is_crowdstrike_not_installed_and_not_running: "{{ not crowdstrike_service_installed and not crowdstrike_service_started }}"
+#     is_crowdstrike_installed_and_not_running: "{{ crowdstrike_service_installed and not crowdstrike_service_started }}"
+#     is_crowdstrike_installed_and_running: "{{ crowdstrike_service_installed and crowdstrike_service_started }}"
+#   tags: always

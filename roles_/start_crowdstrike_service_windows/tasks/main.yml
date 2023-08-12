@@ -1,0 +1,3 @@
+---
+- name: Start CrowdStrike service for Windows
+  include_tasks: crowdstrike_running_windows.yml
