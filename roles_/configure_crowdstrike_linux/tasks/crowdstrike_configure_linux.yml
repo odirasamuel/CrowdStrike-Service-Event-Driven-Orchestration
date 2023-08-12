@@ -1,0 +1,14 @@
+---
+- name: Configure Crowdstrike
+  command: /opt/CrowdStrike/falconctl -s -f --cid={{ crowdstrike_cid }} --tags="{{ crowdstrike_grouping_product }},{{ crowdstrike_grouping_region }}"
+  become: true
+  become_method: sudo
+  remote_user: "{{ ansible_user }}"
+  register: crowdstrike_configured
+  failed_when:
+    - "'ERROR' in crowdstrike_configured.stderr"
+  tags: configure
+
+- debug:
+    var: crowdstrike_configured
+  tags: configure
