@@ -1,0 +1,9 @@
+---
+# Check if crowdstrike is installed (Windows)
+- name: Check if CrowdStrike is installed
+  win_service: 
+    name: "{{ crowdstrike_service_name }}"
+  register: crowdstrike_installed_output
+  failed_when: 
+    - "'crowdstrike_service_name' not in crowdstrike_installed_output"
+  tags: status
