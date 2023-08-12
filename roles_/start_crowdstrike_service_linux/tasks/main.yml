@@ -1,0 +1,3 @@
+---
+- name: Start CrowdStrike service for Linux
+  include_tasks: crowdstrike_running_linux.yml

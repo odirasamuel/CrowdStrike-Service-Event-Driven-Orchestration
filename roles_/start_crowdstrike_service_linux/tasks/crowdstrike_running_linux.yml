@@ -1,0 +1,38 @@
+---
+- name: Check if Systemd is being used
+  command: systemctl --version
+  become_user: sudo
+  remote_user: "{{ ansible_user }}"
+  register: systemd_result
+  tags: start
+
+- name: Start CrowdStrike Service
+  block:
+    - name: Start Crowdstrike Service when init system is SysVinit i.e not Systemd
+      command: service {{ crowdstrike_service_name }} start
+      become: true
+      become_method: sudo
+      remote_user: "{{ ansible_user }}"
+      when: systemd_result.rc != 0
+      register: service_started
+
+    - name: Start Crowdstrike Service when init system is Systemd
+      command: systemctl start {{ crowdstrike_service_name }}
+      become: true
+      become_method: sudo
+      remote_user: "{{ ansible_user }}"
+      when: systemd_result.rc == 0
+      register: service_started
+
+    - debug:
+        msg: "CrowdStrike Service Start Status: {{ service_started.stdout }}"
+  when: systemd_result.exists
+  tags: start
+
+# - name: Crowdstrike Install status (Linux)
+#   set_fact:
+#     is_crowdstrike_not_installed_not_configured_and_not_running: "{{ not crowdstrike_installed.exists and not crowdstrike_configured.exists and not service_started.exists }}"
+#     is_crowdstrike_installed_not_configured_and_not_running: "{{ crowdstrike_installed_output.exists and not crowdstrike_configured.exists and not service_started.exists }}"
+#     is_crowdstrike_installed_configured_and_not_running: "{{ crowdstrike_installed_output.exists and crowdstrike_configured.exists and not service_started.exists }}"
+#     is_crowdstrike_installed_configured_and_running: "{{ crowdstrike_installed_output.exists and crowdstrike_configured.exists and service_started.exists }}"
+#   tags: always
