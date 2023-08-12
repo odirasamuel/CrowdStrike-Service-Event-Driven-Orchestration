@@ -1,0 +1,4 @@
+crowdstrike_win_exe: tbd
+crowdstrike_service_name: tbd
+crowdstrike_cid: tbd
+falcon_windows_install_args: 'GROUPING_TAGS="{{ crowdstrike_grouping_product }},{{ crowdstrike_grouping_region }}" /log {{ ansible_env.TEMP }}\\dcfi_CrowdStrikeLog.txt /norestart'
