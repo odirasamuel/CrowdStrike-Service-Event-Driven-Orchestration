@@ -1,0 +1,12 @@
+---
+#Restart CrowdStrike on Windows machines
+- name: Restart CrowdStrike Falcon Sensor Service
+  win_service:
+    name: "{{ crowdstrike_service_name }}"
+    state: restarted
+  register: service_restart_result
+  until: service_restart_result is not failed
+  retries: 3
+  delay: 60
+  failed_when: service_restart_result.state != 'running'
+  tags: status
