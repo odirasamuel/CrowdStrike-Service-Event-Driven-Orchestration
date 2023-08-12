@@ -1,0 +1,3 @@
+---
+- name: Check what OS runs on the Machine
+  include_tasks: check_os.yml
