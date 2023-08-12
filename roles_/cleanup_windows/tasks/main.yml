@@ -1,0 +1,3 @@
+---
+- name: Remove installation file(s) in Windows
+  include_tasks: cleanup_installation_files_windows.yml
