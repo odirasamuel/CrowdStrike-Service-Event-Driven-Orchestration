@@ -1,0 +1,14 @@
+---
+# Check if crowdstrike is running (Windows)
+- name: Check if CrowdStrike is running
+  win_service:
+    name: "{{ crowdstrike_service_name }}"
+    state: started
+  register: crowdsrike_service_running
+  failed_when: "crowdstrike_service_running.state != 'started'"
+  tags: status
+
+- name: Crowdstrike running status (Windows)
+  set_fact:
+    crowdstrike_running: "{{ crowdsrike_service_running.exists }}"
+  tags: status
