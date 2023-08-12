@@ -1,0 +1,3 @@
+---
+- name: Remove installation file(s) in Linux
+  include_tasks: cleanup_installation_files_linux.yml
