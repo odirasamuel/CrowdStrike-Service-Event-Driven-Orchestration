@@ -1,0 +1,35 @@
+---
+# Check if crowdstrike is running (Linux)
+- name: Check if Systemd is being used
+  command: systemctl --version
+  become_user: sudo
+  remote_user: "{{ ansible_user }}"
+  register: systemd_result
+  tags: status
+
+- name: Check if CrowdStrike service is running
+  block:
+    - name: Check when CrowdStrike is running on Systemd
+      command: "systemctl status {{ crowdstrike_service_name }}"
+      become_user: sudo
+      remote_user: "{{ ansible_user }}"
+      register: crowdsrike_service_running
+      when: 
+        - systemd_result.rc == 0
+      failed_when: 
+        - crowdsrike_service_running.rc == 3
+
+    - name: Check when CrowdStrike is running on SysVinit
+      command: "service {{ crowdstrike_service_name }} status"
+      become_user: sudo
+      remote_user: "{{ ansible_user }}"
+      register: crowdsrike_service_running
+      when: 
+        - systemd_result.rc != 0
+      failed_when: 
+        - crowdsrike_service_running.rc != 0
+
+    - debug:
+        msg: "CrowdStrike Service Status: {{ crowdsrike_service_running.stdout }}"
+  when: systemd_result.exists
+  tags: status
