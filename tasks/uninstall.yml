@@ -1,0 +1,30 @@
+---
+- name: Get Crowdstrike Uninstall Tool from S3 Bucket
+  win_shell: |
+    Copy-S3Object -BucketName {{ cp_bucket }} -Region {{ aws_region }} -Key {{ crowdstrike_uninstall_exe }} -LocalFolder {{ ansible_env.TEMP }}
+  args:
+    creates: "{{ ansible_env.TEMP }}\\{{ crowdstrike_uninstall_exe }}"
+  when: ansible_facts['os_family'] == "Windows"
+
+- name: Uninstall Crowdstrike Windows
+  win_command: "{{ ansible_env.TEMP }}\\{{ crowdstrike_uninstall_exe }} /quiet"
+  register: result
+  when: ansible_facts['os_family'] == "Windows"
+
+- name: Uninstall Crowdstrike Ubuntu
+  command: apt-get purge falcon-sensor
+  become: true
+  become_method: sudo
+  remote_user: ec2-user
+  when: 
+    - not ansible_facts['os_family'] == "Windows"
+    - ansible_facts['distribution'] == "Ubuntu"
+
+- name: Uninstall Crowdstrike Oracle or Amazon Linux
+  command: yum remove falcon-sensor -y
+  become: true
+  become_method: sudo
+  remote_user: ec2-user
+  when: 
+    - not ansible_facts['os_family'] == "Windows"
+    - (ansible_facts['distribution'] == "OracleLinux" or ansible_facts['distribution'] == "Amazon")

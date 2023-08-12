@@ -1,0 +1,18 @@
+---
+# CROWDSTRIKE NEEDS CONFIGURATION FROM GPO TO BE ALLOWED TO BE UNINSTALLED
+# COORDINATE WITH BILLY DELA VEGA
+- import_tasks: uninstall.yml
+  when: crowdstrike_uninstall
+
+- import_tasks: init_install.yml
+  #when: crowdstrike_install
+
+- import_tasks: install_windows.yml
+  when: 
+    - ansible_facts['os_family'] == "Windows"
+    - crowdstrike_install
+
+- import_tasks: install_linux.yml
+  when: 
+    - not ansible_facts['os_family'] == "Windows"
+    - crowdstrike_install 
