@@ -1,0 +1,37 @@
+---
+- name: Check if CrowdStrike Agent is installed
+  hosts: all
+  vars_files:
+    - vars/connection_info.yml
+    - defaults/main.yml
+  tasks:
+    - name: wait for hosts to be available
+      wait_for_connection:
+        connect_timeout: 60
+        timeout: 900
+        sleep: 60
+      tags: always
+    
+    - name: Linux Tasks
+      block:
+        - name: Include Linux Specific Variables
+          include_vars:
+            file: vars/linux.yml
+
+        - name: Check if CrowdStrike agent is installed in Linux
+          roles:
+            - crowdstrike_agent_install_check_linux
+      when:
+        - ansible_facts['os_family'] == "Linux"
+
+    - name: Windows Tasks
+      block:
+        - name: Include Windows Specific Variables
+          include_vars:
+            file: vars/windows.yml
+
+        - name: Check if CrowdStrike agent is installed in Windows
+          roles:
+            - crowdstrike_agent_install_check_windows
+      when:
+        - ansible_facts['os_family'] == "Windows"
