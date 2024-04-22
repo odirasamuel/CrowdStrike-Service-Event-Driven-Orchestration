@@ -1,0 +1,76 @@
+---
+- name: Check if CrowdStrike service exists
+  win_service:
+    name: "{{ windows_crowdstrike_service_name }}"
+  register: service_info
+  tags: download
+
+- name: Set fact for CrowdStrike service existence
+  set_fact:
+    service_present: "{{ service_info.exists }}"
+  tags: download
+
+# - name: Get Crowdstrike installer file from s3 bucket
+#   aws_s3:
+#     bucket: "{{ s3_location }}"
+#     object: "{{ software_bucket_windows }}\\{{ crowdstrike_win_exe }}"
+#     region: "{{ aws_region }}"
+#     dest: "{{ local_path_windows }}\\{{ crowdstrike_win_exe }}"
+#     mode: get
+#     access_key: "{{ access_key }}"
+#     secret_key: "{{ secret_key }}"
+#     no_log: true
+#   register: result
+#   when: service_present == true
+#   tags: download
+
+- name: Get Crowdstrike installer file from s3 bucket
+  win_shell: |
+    Copy-S3Object -BucketName {{ software_bucket }} -Region {{ aws_region }} -Key {{ crowdstrike_win_exe }} -LocalFolder {{ local_path_windows }} -AccessKey {{ access_key }} -SecretKey {{ secret_key }}
+  args:
+    creates: "{{ local_path_windows }}\\{{ crowdstrike_win_exe }}"
+  no_log: true
+  register: result
+  when: service_present == false
+  tags: download
+
+- name: Set fact for installer download result
+  set_fact:
+    is_downloaded: "{{ not result.failed }}"
+  tags: download
+  
+- name: Install Crowdstrike on Windows
+  win_package:
+    path: "{{ local_path_windows }}\\{{ crowdstrike_win_exe }}"
+    state: present
+    creates_service: "{{ windows_crowdstrike_service_name }}"
+    arguments: "/install /quiet CID={{ crowdstrike_cid }}"
+  register: service_installed
+  when: is_downloaded == true
+  tags: install
+
+- name: Ensure CrowdStrike service is running
+  win_service: 
+    name: "{{ windows_crowdstrike_service_name }}"
+    state: started
+  register: crowdstrike_installed_output
+  when: service_installed
+  tags: install
+
+- name: Set fact based on CrowdStrike Service install success status
+  set_fact:
+    crowdstrike_service_installed: true
+  when: (crowdstrike_installed_output.state == "running" and service_installed.changed == true)
+  tags: install
+
+- name: Set fact based on CrowdStrike Service install failure status
+  set_fact:
+    crowdstrike_service_installed: false
+  when: (crowdstrike_installed_output.state == "stopped" or service_installed.changed == false)
+  tags: install
+
+- name: Write CrowdStrike Service install status to stdout
+  debug:
+    var: crowdstrike_service_installed
+  when: crowdstrike_service_installed is defined
+  tags: install
