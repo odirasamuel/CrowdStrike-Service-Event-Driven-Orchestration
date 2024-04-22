@@ -1,0 +1,35 @@
+---
+- name: Remove installation files
+  hosts: all
+  gather_facts: true
+  become: true
+  become_method: "{{ (ansible_facts['os_family'] == 'Windows') | ternary('runas', 'sudo') }}"
+  become_user: "{{ svc_user }}"
+  remote_user: "{{ svc_user }}"
+
+  vars_files:
+    - vars/{{ ansible_facts['os_family'] }}.yml
+
+  tasks:
+    - name: wait for hosts to be available
+      wait_for_connection:
+        connect_timeout: 60
+        timeout: 900
+        sleep: 60
+      tags: always
+
+    - name: Remove installation files in Linux
+      include_role:
+        name: ../../
+        tasks_from: cleanup_installation_files_linux
+      when:
+        - ansible_facts['os_family'] == "Linux"
+      tags: cleanup
+
+    - name: Remove installation files in Windows
+      include_role:
+        name: ../../
+        tasks_from: cleanup_installation_files_windows
+      when:
+        - ansible_facts['os_family'] == "Windows"
+      tags: cleanup
