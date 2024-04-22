@@ -1,0 +1,62 @@
+---
+# Check init system of the Linux machine
+- name: Check init system being used
+  command: systemctl --version
+  ignore_errors: true
+  register: init_system_check
+  tags: restart
+
+# Restart crowdstrike with init system of the Linux machine
+- name: Restart CrowdStrike Service
+  block:
+    - name: Restart CrowdStrike Falcon Sensor Service with Systemd
+      systemd:
+        name: "{{ linux_crowdstrike_service_name }}"
+        state: restarted
+      register: service_restart_result
+      until: service_restart_result is not failed
+      retries: 3
+      delay: 60
+      ignore_errors: true
+      when: init_system_check.rc == 0
+
+    - name: Restart CrowdStrike Falcon Sensor Service with SysVinit
+      service:
+        name: "{{ linux_crowdstrike_service_name }}"
+        state: restarted
+      register: service_restart_result
+      until: service_restart_result is not failed
+      retries: 3
+      delay: 60
+      ignore_errors: true
+      when: init_system_check.rc != 0
+  when: init_system_check
+  tags: restart
+
+- name: Validate Service restarted
+  assert:
+    that:
+      - service_restart_result.state == "running" and service_restart_result.changed == true
+    fail_msg: "Crowdstrike service fails to restart"
+    success_msg: "Crowdstrike service successfully restarted"
+  ignore_errors: true
+  register: service_restart_result
+  when: service_restart_result is defined
+  tags: validate
+
+- name: Set fact based on CrowdStrike Service restart failure
+  set_fact:
+    crowdstrike_service_restart_status: "Crowdstrike service fails to restart"
+  when: service_restart_result.failed == true
+  tags: restart
+
+- name: Set fact based on CrowdStrike Service restart success
+  set_fact:
+    crowdstrike_service_restart_status: "Crowdstrike service successfully restarted"
+  when: service_restart_result.failed == false
+  tags: restart
+
+- name: Write CrowdStrike Service restart status to stdout
+  debug:
+    var: crowdstrike_service_restart_status
+  when: crowdstrike_service_restart_status is defined
