@@ -1,9 +1,15 @@
 ---
 - name: Check if CrowdStrike Agent is installed
   hosts: all
+  gather_facts: true
+  become: true
+  become_method: "{{ (ansible_facts['os_family'] == 'Windows') | ternary('runas', 'sudo') }}"
+  become_user: "{{ svc_user }}"
+  remote_user: "{{ svc_user }}"
+
   vars_files:
-    - vars/connection_info.yml
-    - defaults/main.yml
+    - vars/{{ ansible_facts['os_family'] }}.yml
+
   tasks:
     - name: wait for hosts to be available
       wait_for_connection:
@@ -12,26 +18,18 @@
         sleep: 60
       tags: always
     
-    - name: Linux Tasks
-      block:
-        - name: Include Linux Specific Variables
-          include_vars:
-            file: vars/linux.yml
-
-        - name: Check if CrowdStrike agent is installed in Linux
-          roles:
-            - crowdstrike_agent_install_check_linux
+    - name: Check if CrowdStrike agent is installed in Linux
+      include_role:
+        name: ../../
+        tasks_from: is_crowdstrike_installed_linux
       when:
         - ansible_facts['os_family'] == "Linux"
+      tags: status
 
-    - name: Windows Tasks
-      block:
-        - name: Include Windows Specific Variables
-          include_vars:
-            file: vars/windows.yml
-
-        - name: Check if CrowdStrike agent is installed in Windows
-          roles:
-            - crowdstrike_agent_install_check_windows
+    - name: Check if CrowdStrike agent is installed in Windows
+      include_role:
+        name: ../../
+        tasks_from: is_crowdstrike_installed_windows
       when:
         - ansible_facts['os_family'] == "Windows"
+      tags: status
