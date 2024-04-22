@@ -1,0 +1,50 @@
+---
+# Check init system of the Linux machine
+- name: Check init system being used
+  command: systemctl --version
+  ignore_errors: true
+  register: init_system_check
+  tags: start
+
+- name: Start CrowdStrike Service
+  block:
+    - name: Start Crowdstrike Service when init system is SysVinit i.e not Systemd
+      command: service {{ linux_crowdstrike_service_name }} start
+      when: init_system_check.rc != 0
+      register: service_started
+
+    - name: Start Crowdstrike Service when init system is Systemd
+      command: systemctl start {{ linux_crowdstrike_service_name }}
+      when: init_system_check.rc == 0
+      register: service_started
+  when: init_system_check
+  tags: start
+
+- name: Validate Service started
+  assert:
+    that:
+      - service_started.state == "running" and service_started.changed == true
+    fail_msg: "Crowdstrike service fails to start"
+    success_msg: "Crowdstrike service successfully started"
+  ignore_errors: true
+  register: service_started_result
+  when: service_started is defined
+  tags: start
+
+- name: Set fact based on CrowdStrike Service start failure
+  set_fact:
+    crowdstrike_service_start_status: "Crowdstrike service fails to start"
+  when: service_started_result.failed == true
+  tags: start
+
+- name: Set fact based on CrowdStrike Service start success
+  set_fact:
+    crowdstrike_service_start_status: "Crowdstrike service successfully started"
+  when: service_started_result.failed == false
+  tags: start
+
+- name: Write CrowdStrike Service start status to stdout
+  debug:
+    var: crowdstrike_service_start_status
+  when: crowdstrike_service_start_status is defined
+  tags: start
