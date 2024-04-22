@@ -1,9 +1,15 @@
 ---
 - name: Configure CrowdStrike Agent
   hosts: all
+  gather_facts: true
+  become: true
+  become_method: "{{ (ansible_facts['os_family'] == 'Windows') | ternary('runas', 'sudo') }}"
+  become_user: "{{ svc_user }}"
+  remote_user: "{{ svc_user }}"
+
   vars_files:
-    - vars/connection_info.yml
-    - defaults/main.yml
+    - vars/{{ ansible_facts['os_family'] }}.yml
+
   tasks:
     - name: wait for hosts to be available
       wait_for_connection:
@@ -11,15 +17,11 @@
         timeout: 900
         sleep: 60
       tags: always
-    
-    - name: Linux Tasks
-      block:
-        - name: Include Linux Specific Variables
-          include_vars:
-            file: vars/linux.yml
 
-        - name: Configure CrowdStrike agent in Linux
-          roles:
-            - configure_crowdstrike_linux
+    - name: Configure CrowdStrike agent in Linux
+      include_role:
+        name: ../../
+        tasks_from: crowdstrike_connfigure_linux
       when:
         - ansible_facts['os_family'] == "Linux"
+      tags: configure
