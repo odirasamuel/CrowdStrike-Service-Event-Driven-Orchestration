@@ -1,5 +1,5 @@
 ---
-svc_user: service_account
+svc_user: service_account_name
 aws_region: us-east-2
 s3_location: s3_bucket
 software_bucket_windows: "{{ s3_bucket }}/windows/path_to_packages"
