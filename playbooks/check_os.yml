@@ -2,11 +2,13 @@
 - name: Determine Operating System
   hosts: all
   gather_facts: true
+  become: true
+  become_method: "{{ (ansible_facts['os_family'] == 'Windows') | ternary('runas', 'sudo') }}"
+  become_user: "{{ svc_user }}"
+  remote_user: "{{ svc_user }}"
+
   vars_files:
-    - vars/connection_info.yml
-    - defaults/main.yml
-    - vars/linux.yml
-    - vars/windows.yml
+    - vars/{{ ansible_facts['os_family'] }}.yml
 
   tasks:
     - name: wait for hosts to be available
@@ -16,6 +18,9 @@
         sleep: 60
       tags: always
     
-    - name: Print out what OS runs on the Machine
-      roles:
-        - check_os_type
+    - name: Determine Operating System
+      include_role:
+        name: ../../
+        tasks_from: check_os
+      tags: always
+
