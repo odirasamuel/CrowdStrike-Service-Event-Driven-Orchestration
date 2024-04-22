@@ -1,0 +1,66 @@
+---
+# Check init system of the Linux machine
+- name: Check init system being used
+  command: systemctl --version
+  ignore_errors: true
+  register: init_system_check
+  tags: status
+
+- name: Check if CrowdStrike service is running
+  block:
+    - name: Check when CrowdStrike is running on Systemd
+      command: "systemctl status {{ linux_crowdstrike_service_name }}"
+      register: result
+      when: 
+        - init_system_check.rc == 0
+
+    - name: Check when CrowdStrike is running on SysVinit
+      command: "service {{ linux_crowdstrike_service_name }} status"
+      register: result
+      when: 
+        - init_system_check.rc != 0
+  when: init_system_check
+  tags: status
+
+- name: Validate CrowdStrike Service running status
+  block:
+    - name: Validate CrowdStrike Service running status on Systemd
+      assert:
+        that:
+          - result.stdout | search('Active: active')
+        fail_msg: "CrowdStrike service is not running"
+        success_msg: "CrowdStrike service is running"
+      ignore_errors: true
+      register: crowdstrike_running_status
+      when: 
+        - init_system_check.rc == 0
+
+    - name: Validate CrowdStrike Service running status on SysVinit
+      assert:
+        that:
+          - result.stdout | search(linux_crowdstrike_service_name + ' is running')
+        fail_msg: "CrowdStrike service is not running"
+        success_msg: "CrowdStrike service is running"
+      ignore_errors: true
+      register: crowdstrike_running_status
+      when: 
+        - init_system_check.rc != 0
+  when: result is defined
+
+- name: Set fact based on CrowdStrike Service 'running' status
+  set_fact:
+    crowdstrike_running: true
+  when: crowdstrike_running_status.failed == false
+  tags: status
+
+- name: Set fact based on CrowdStrike Service 'not running' status
+  set_fact:
+    crowdstrike_running: false
+  when: crowdstrike_running_status.failed == true
+  tags: status
+
+- name: Write CrowdStrike Service running status to stdout
+  debug:
+    var: crowdstrike_running
+  when: crowdstrike_running is defined
+  tags: status
