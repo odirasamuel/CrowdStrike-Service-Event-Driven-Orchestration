@@ -1,6 +1,2 @@
-installer_debian: tbd
-installer_others: tbd
-crowdstrike_cid: tbd
-crowdstrike_service_name: tbd
-crowdstrike_grouping_product: tbd
-crowdstrike_grouping_region: tbd
+ansible_conection: ssh
+ansible_port: 22

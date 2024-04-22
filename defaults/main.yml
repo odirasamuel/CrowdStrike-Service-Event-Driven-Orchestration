@@ -1,29 +1,18 @@
-aws_region: tbd
-s3_location: tbd
-software_bucket: "{{ s3_location }}/software"
-comments: "{{  }}"
-
-
-#For authenticating to ServiceNow Instance
-sn_host: https://instance_id.service-now.com
-sn_username: tbd
-sn_password: tbd
-sn_grant_type: tbd (password or refresh_token)
-sn_access_token: tbd
-sn_client_id: tbd
-sn_client_secret: tbd
-
-#PagerDuty
-pagerduty_service_id: tbd
-pagerduty_api_token: tbd
-pagerduty_user_email: tbd
-service_id: tbd
-priority_id: tbd
-incident_key: baf7cf21b1da41b4b0221008339ff357-tbd
-escalation_policy_id: tbd
-
-
-#Variables to be fetch from servicenow
-short_description: ""
-long_description: ""
-incident_number: ""
+---
+svc_user: service_account
+aws_region: us-east-2
+s3_location: s3_bucket
+software_bucket_windows: "{{ s3_bucket }}/windows/path_to_packages"
+software_bucket_linux: "{{ s3_bucket }}/linux/path_to_packages"
+installer_debian: DEBIAN_falcon-sensor_7.02.0-15705_amd64.deb
+installer_oracle: ORACLE7_falconn-sensor-7.02.0-15705.e17.x86_64.rpm
+installer_rhel: RHEL8_falcon-sensor-7.02.0-15705.e18.x86_64.rpm
+installer_amazonlinux: AMAZONLINUX2_falcon-sensor-7.02.0-15705.amznn.x86_64.rpm
+local_path_linux: ~/tmp/crowdstrike
+local_path_windows: C:\\temp\\crowdstrike
+crowdstrike_win_exe: WindowsSensor.exe
+windows_crowdstrike_service_name: CSFalconService
+linux_crowdstrike_service_name: falcon-sensor
+crowdstrike_cid: 7587r6rf564e5r87998090i982h-R2
+access_key: '{{ lookup("env", "AWS_ACCESS_KEY_ID") }}'
+secret_key: '{{ lookup("env", "AWS_SECRET_ACCESS_KEY") }}'

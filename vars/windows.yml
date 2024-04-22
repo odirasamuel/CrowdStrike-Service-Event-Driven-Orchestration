@@ -1,4 +1,7 @@
-crowdstrike_win_exe: tbd
-crowdstrike_service_name: tbd
-crowdstrike_cid: tbd
-falcon_windows_install_args: 'GROUPING_TAGS="{{ crowdstrike_grouping_product }},{{ crowdstrike_grouping_region }}" /log {{ ansible_env.TEMP }}\\dcfi_CrowdStrikeLog.txt /norestart'
+ansible_conection: winrm
+ansible_winrm_transport: credssp
+ansible_winrm_server_cert_validation: ignore
+ansible_winrm_scheme: https
+ansible_winrm_operation_timeout_sec: 1200
+ansible_winrm_read_timeout_sec: 2400
+ansible_port: 5986
