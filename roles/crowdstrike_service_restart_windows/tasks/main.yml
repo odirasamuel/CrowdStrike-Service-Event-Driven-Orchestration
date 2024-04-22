@@ -1,3 +1,0 @@
----
-- name: Restart CS (Windows)
-  include_tasks: crowdstrike_restart_windows.yml

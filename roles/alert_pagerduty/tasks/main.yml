@@ -1,3 +1,0 @@
----
-- name: Alert PagerDuty of failed tasks
-  include_tasks: alert_pagerduty.yml

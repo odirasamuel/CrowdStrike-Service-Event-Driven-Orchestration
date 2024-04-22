@@ -1,3 +1,0 @@
----
-- name: Restart CrowdStrike (Linux)
-  include_tasks: crowdstrike_restart_linux.yml

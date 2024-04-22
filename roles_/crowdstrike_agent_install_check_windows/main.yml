@@ -1,3 +1,0 @@
----
-- name: Check if crowdstrike is installed in Windows Machine
-  include_tasks: is_crowdstrike_installed_windows.yml

@@ -1,3 +1,0 @@
----
-- name: Install CrowdStrike for Windows
-  include_tasks: crowdstrike_install_windows.yml

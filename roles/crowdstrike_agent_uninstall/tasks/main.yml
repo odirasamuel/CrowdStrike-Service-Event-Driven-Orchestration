@@ -1,3 +1,0 @@
----
-- name: Uninstall CrowdStrike
-  include_tasks: crowdstrike_uninstall.yml

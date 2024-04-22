@@ -1,8 +1,0 @@
----
-- name: Delete Installer from Temp Directory
-  win_file:
-    path: "{{ ansible_env.TEMP }}\\{{ crowdstrike_win_exe }}"
-    state: absent
-  register: installer_removed
-  failed_when: "'absent' not in installer_removed.state"
-  tags: cleanup

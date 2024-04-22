@@ -1,3 +1,0 @@
----
-- name: Check if crowdstrike is running in Linux
-  include_tasks: is_crowdstrike_running_linux.yml

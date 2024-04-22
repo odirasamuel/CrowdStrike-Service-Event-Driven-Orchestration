@@ -1,3 +1,0 @@
----
-- name: Install CrowdStrike for Linux
-  include_tasks: crowdstrike_install_linux.yml

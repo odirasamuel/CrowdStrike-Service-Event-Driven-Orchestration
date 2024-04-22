@@ -1,0 +1,21 @@
+---
+#For Linux
+- name: Set OS type for Linux
+  set_fact:
+    os_output: OS type is Linux
+  when: ansible_facts['os_family'] in ["RedHat", "Debian", "Suse"]
+  tags: always
+
+#For Windows
+- name: Set OS type for Windows
+  set_fact:
+    os_output: OS type is Windows
+  when: ansible_facts['os_family'] == "Windows"
+  tags: always
+
+#Return OS type
+- name: Write OS type to stdout
+  debug:
+    var: os_output
+  when: os_output is defined
+  tags: always

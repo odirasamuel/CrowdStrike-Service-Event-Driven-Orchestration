@@ -1,3 +1,0 @@
----
-- name: Change servicenow incident ticket to 'closed'
-  include_tasks: update_ticket_to_closed.yml
