@@ -1,0 +1,64 @@
+---
+- name: Remove CrowdStrike Installer Package
+  block:
+    - name: Check if Crowdstrike Installer file exists in Debian
+      stat:
+        path: "{{ local_path_linux }}/{{ installer_debian }}"
+      register: debian_file_stat
+      when: ansible_facts['distribution'] == "Debian"
+
+    - name: Clean-up Crowdstrike Installer file in Debian
+      file:
+        path: "{{ local_path_linux }}/{{ installer_debian }}"
+        state: absent
+      when: debian_file_stat.stat.exists == true
+      register: is_cleaned_up
+
+    - name: Check if Crowdstrike Installer file exists in RHEL
+      stat:
+        path: "{{ local_path_linux }}/{{ installer_rhel }}"
+      register: rhel_file_stat
+      when: ansible_facts['distribution'] == "RHEL"
+
+    - name: Clean-up Crowdstrike Installer file in RHEL
+      file:
+        path: "{{ local_path_linux }}/{{ installer_rhel }}"
+        state: absent
+      when: rhel_file_stat.stat.exists == true
+      register: is_cleaned_up
+
+    - name: Check if Crowdstrike Installer file exists in Oracle
+      stat:
+        path: "{{ local_path_linux }}/{{ installer_oracle }}"
+      register: oracle_file_stat
+      when: ansible_facts['distribution'] == "Oracle"
+
+    - name: Clean-up Crowdstrike Installer file in Oracle
+      file:
+        path: "{{ local_path_linux }}/{{ installer_oracle }}"
+        state: absent
+      when: oracle_file_stat.stat.exists == true
+      register: is_cleaned_up
+
+    - name: Check if Crowdstrike Installer file exists in AmazonLinux
+      stat:
+        path: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
+      register: amazonlinux_file_stat
+      when: ansible_facts['distribution'] == "Amazon"
+
+    - name: Clean-up Crowdstrike Installer file in AmazonLinux
+      file:
+        path: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
+        state: absent
+      when: amazonlinux_file_stat.stat.exists == true
+      register: is_cleaned_up
+  tags: cleanup
+
+- name: Set fact for cleanup result
+  set_fact:
+    is_cleaned_up: "{{ is_cleaned_up.changed | default(false)}}"
+
+- name: Write cleanup result to stdout
+  debug:
+    var: is_cleaned_up
+  when: is_cleaned_up is defined
