@@ -1,0 +1,17 @@
+---
+# Check if crowdstrike is installed (Linux)
+- name: Check if CrowdStrike is installed
+  stat:
+    path: /opt/CrowdStrike/falconctl
+  register: result
+  tags: status
+
+- name: Set fact based on CrowdStrike Service install status
+  set_fact:
+    crowdstrike_installed: "{{ result.stat.exists }}"
+  tags: status
+
+- name: Write CrowdStrike Service install status to stdout
+  debug:
+    var: crowdstrike_installed
+  tags: status
