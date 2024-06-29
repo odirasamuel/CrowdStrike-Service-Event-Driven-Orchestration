@@ -1,59 +1,35 @@
----
-# # Stop CrowdStrike Falcon Sensor Service
-# - name: Stop CrowdStrike Falcon Sensor Service
-#   win_service:
-#     name: "{{ windows_crowdstrike_service_name }}"
-#     state: stopped
-#   register: service_stop_result
-#   until: service_stop_result is not failed
-#   retries: 3
-#   delay: 60
-#   tags: restart
+# Stop CrowdStrike Falcon Sensor Service
+- name: Stop CrowdStrike Falcon Sensor Service
+  win_service:
+    name: "{{ windows_crowdstrike_service_name }}"
+    state: stopped
+  register: service_stop_result
+  until: service_stop_result is not failed
+  retries: 3
+  delay: 60
+  tags: restart
 
-# - name: Validate Service stopped
-#   assert:
-#     that:
-#       - service_stop_result.state == "stopped"
-#     fail_msg: "Crowdstrike service failed to stop"
-#   tags: validate
+- name: Pause for 30 seconds
+  pause:
+    seconds: 30
 
 # Restart CrowdStrike Falcon Sensor Service
 - name: Restart CrowdStrike Falcon Sensor Service
   win_service:
     name: "{{ windows_crowdstrike_service_name }}"
-    state: restarted
+    state: started
   register: service_restart_result
   until: service_restart_result is not failed
   retries: 3
   delay: 60
   ignore_errors: true
-  # when: service_stop_result.changed
-  tags: restart
-
-- name: Validate Service restarted
-  assert:
-    that:
-      - service_restart_result.state == "running" and service_restart_result.changed == true
-    fail_msg: "Crowdstrike service fails to restart"
-    success_msg: "Crowdstrike service successfully restarted"
-  ignore_errors: true
-  register: service_restart_result
-  tags: restart
-
-- name: Set fact based on CrowdStrike Service restart failure
-  set_fact:
-    crowdstrike_service_restart_status: "Crowdstrike service fails to restart"
-  when: service_restart_result.failed == true
-  tags: restart
-
-- name: Set fact based on CrowdStrike Service restart success
-  set_fact:
-    crowdstrike_service_restart_status: "Crowdstrike service successfully restarted"
-  when: service_restart_result.failed == false
+  when:
+  - service_stop_result is defined
+  - service_stop_result.state == "stopped"
   tags: restart
 
 - name: Write CrowdStrike Service restart status to stdout
   debug:
-    var: crowdstrike_service_restart_status
-  when: crowdstrike_service_restart_status is defined
+    msg: "crowdstrike_restarted_status: {{ 'successfully restarted' if service_restart_result.failed == false else 'failed to restart' }}"
+  when: service_restart_result is defined
   tags: restart
