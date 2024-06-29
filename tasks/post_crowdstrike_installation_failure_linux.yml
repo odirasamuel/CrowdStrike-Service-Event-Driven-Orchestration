@@ -1,0 +1,131 @@
+- name: Get service facts
+  service_facts:
+  register: service_facts
+  tags: post_failure
+
+- name: Ensure CrowdStrike Service is stopped and disabled
+  block:
+  - name: Stop CrowdStrike Service when init system is Systemd
+    ansible.builtin.systemd:
+      name: "{{ linux_crowdstrike_service_name }}"
+      state: stopped
+      enabled: no
+    register: service_stopped_systemd
+    until: service_stopped_systemd.failed == false
+    retries: 3
+    delay: 60
+    ignore_errors: true
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "systemd"
+
+  - name: Stop CrowdStrike Service when init system is SysVinit
+    ansible.builtin.service:
+      name: "{{ linux_crowdstrike_service_name }}"
+      state: stopped
+      enabled: no
+    register: service_stopped_sysv
+    until: service_stopped_sysv.failed == false
+    retries: 3
+    delay: 60
+    ignore_errors: true
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "sysv"
+
+  - name: Remove CrowdStrike for Debian based systems
+    command: dpkg --purge {{ linux_crowdstrike_service_name }}
+    register: service_removed_debian
+    when:
+    - ansible_facts['distribution'] == "Debian"
+
+  - name: Remove CrowdStrike for Oracle Linux based systems
+    command: yum remove {{ linux_crowdstrike_service_name }} -y
+    register: service_removed_oracle
+    when:
+    - ansible_facts['distribution'] in ["OracleLinux", "RedHat", "Amazon"]
+
+  - name: Remove /opt/CrowdStrike directory
+    file:
+      path: /opt/CrowdStrike
+      state: absent
+    register: crowdstrike_directory_removed
+
+  - name: Remove falcon-sensor service file
+    file:
+      path: /etc/systemd/system/{{ linux_cs_service }}
+      state: absent
+    register: falcon_sensor_service_removed
+    ignore_errors: true
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "systemd"
+
+  - name: Remove falcon-sensor init script
+    file:
+      path: /etc/init.d/{{ linux_crowdstrike_service_name }}
+      state: absent
+    register: falcon_sensor_init_removed
+    ignore_errors: true
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "sysv"
+
+  - name: Remove /usr/bin/falconctl file
+    file:
+      path: /usr/bin/falconctl
+      state: absent
+    register: falconctl_removed
+
+  - name: Remove /var/lib/falcon-sensor directory
+    file:
+      path: /var/lib/{{ linux_crowdstrike_service_name }}
+      state: absent
+    register: falcon_sensor_logs_removed
+
+  - name: Remove /etc/opt/CrowdStrike directory
+    file:
+      path: /etc/opt/CrowdStrike
+      state: absent
+    register: crowdstrike_config_removed
+
+  - name: Reload systemd to forget the service
+    ansible.builtin.systemd:
+      daemon_reload: yes
+    register: systemd_reloaded
+    ignore_errors: true
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "systemd"
+
+  - name: Reset any failed systemd states
+    command: systemctl reset-failed
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "systemd"
+
+  - name: Find any leftover CrowdStrike service files
+    find:
+      paths:
+      - /etc/systemd
+      - /lib/systemd
+      - /run/systemd
+      patterns: "'*{{ linux_crowdstrike_service_name }}*'"
+    register: leftover_files
+    ignore_errors: true
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "systemd"
+
+  - name: Remove found CrowdStrike service files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ leftover_files.files }}"
+    ignore_errors: true
+    when: service_facts.ansible_facts.services[linux_cs_service].source == "systemd"
+  tags: post_failure
+
+  rescue:
+  - name: Write error message to stdout
+    debug:
+      msg: "Failed to stop, disable CrowdStrike Service and purge the machine"
+    tags: post_failure
+
+  always:
+  - name: Get post purge service facts
+    service_facts:
+    register: post_service_facts
+    tags: post_failure
+
+  - name: Check for CrowdStrike Service status
+    debug:
+      msg: "crowdstrike_installed: {{ 'true' if linux_cs_service in post_service_facts.ansible_facts.services else 'false' }}"
+    when: post_service_facts is defined
+    tags: post_failure
