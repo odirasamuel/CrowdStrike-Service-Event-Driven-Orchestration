@@ -1,4 +1,3 @@
----
 - name: Delete Installer from Temp Directory
   win_file:
     path: "{{ local_path_windows }}\\{{ crowdstrike_win_exe }}"
@@ -6,13 +5,8 @@
   register: installer_removed
   tags: cleanup
 
-- name: Set fact for installer cleanup result
-  set_fact:
-    is_cleaned_up: "{{ installer_removed.changed | default(false) }}"
-  tags: cleanup
-
 - name: Write cleanup result to stdout
   debug:
-    var: is_cleaned_up
-  when: is_cleaned_up is defined
+    msg: "cleaned_up: {{ installer_removed.changed | default(false) }}"
+  when: installer_removed is defined
   tags: cleanup

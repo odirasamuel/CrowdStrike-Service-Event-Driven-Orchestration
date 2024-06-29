@@ -1,64 +1,73 @@
----
-- name: Remove CrowdStrike Installer Package
+# This playbook is used to remove the Crowdstrike installer file from the target machine
+- name: Remove CrowdStrike Installer
   block:
-    - name: Check if Crowdstrike Installer file exists in Debian
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_debian }}"
-      register: debian_file_stat
-      when: ansible_facts['distribution'] == "Debian"
+  - name: Clean-up Crowdstrike Installer file in Debian
+    file:
+      path: "{{ local_path_linux }}/{{ installer_debian }}"
+      state: absent
+    when:
+    - ansible_facts['distribution'] == "Debian"
+    register: debian_is_cleaned_up
 
-    - name: Clean-up Crowdstrike Installer file in Debian
-      file:
-        path: "{{ local_path_linux }}/{{ installer_debian }}"
-        state: absent
-      when: debian_file_stat.stat.exists == true
-      register: is_cleaned_up
+  - name: Clean-up Crowdstrike Installer file in RHEL
+    file:
+      path: "{{ local_path_linux }}/{{ installer_rhel }}"
+      state: absent
+    when:
+    - ansible_facts['distribution'] == "RedHat"
+    register: rhel_is_cleaned_up
 
-    - name: Check if Crowdstrike Installer file exists in RHEL
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_rhel }}"
-      register: rhel_file_stat
-      when: ansible_facts['distribution'] == "RHEL"
+  - name: Clean-up Crowdstrike Installer file in Oracle
+    file:
+      path: "{{ local_path_linux }}/{{ installer_oracle }}"
+      state: absent
+    when:
+    - ansible_facts['distribution'] == "OracleLinux"
+    register: oracle_is_cleaned_up
 
-    - name: Clean-up Crowdstrike Installer file in RHEL
-      file:
-        path: "{{ local_path_linux }}/{{ installer_rhel }}"
-        state: absent
-      when: rhel_file_stat.stat.exists == true
-      register: is_cleaned_up
-
-    - name: Check if Crowdstrike Installer file exists in Oracle
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_oracle }}"
-      register: oracle_file_stat
-      when: ansible_facts['distribution'] == "Oracle"
-
-    - name: Clean-up Crowdstrike Installer file in Oracle
-      file:
-        path: "{{ local_path_linux }}/{{ installer_oracle }}"
-        state: absent
-      when: oracle_file_stat.stat.exists == true
-      register: is_cleaned_up
-
-    - name: Check if Crowdstrike Installer file exists in AmazonLinux
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
-      register: amazonlinux_file_stat
-      when: ansible_facts['distribution'] == "Amazon"
-
-    - name: Clean-up Crowdstrike Installer file in AmazonLinux
-      file:
-        path: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
-        state: absent
-      when: amazonlinux_file_stat.stat.exists == true
-      register: is_cleaned_up
+  - name: Clean-up Crowdstrike Installer file in AmazonLinux
+    file:
+      path: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
+      state: absent
+    when:
+    - ansible_facts['distribution'] == "Amazon"
+    register: amazonlinux_is_cleaned_up
   tags: cleanup
 
-- name: Set fact for cleanup result
-  set_fact:
-    is_cleaned_up: "{{ is_cleaned_up.changed | default(false)}}"
+  rescue:
+  - name: Write cleanup error to stdout
+    debug:
+      msg: "Error occurred while trying to clean up Crowdstrike installer file"
 
-- name: Write cleanup result to stdout
+# Write cleanup result to stdout
+- name: Write debian cleanup result to stdout
   debug:
-    var: is_cleaned_up
-  when: is_cleaned_up is defined
+    msg: "cleaned_up_debian: {{ debian_is_cleaned_up.changed | default(false) }}"
+  when:
+  - debian_is_cleaned_up is defined
+  - ansible_facts['distribution'] == "Debian"
+  tags: cleanup
+
+- name: Write rhel cleanup result to stdout
+  debug:
+    msg: "cleaned_up_rhel: {{ rhel_is_cleaned_up.changed | default(false) }}"
+  when:
+  - rhel_is_cleaned_up is defined
+  - ansible_facts['distribution'] == "RedHat"
+  tags: cleanup
+
+- name: Write oracle cleanup result to stdout
+  debug:
+    msg: "cleaned_up_oracle: {{ oracle_is_cleaned_up.changed | default(false) }}"
+  when:
+  - oracle_is_cleaned_up is defined
+  - ansible_facts['distribution'] == "OracleLinux"
+  tags: cleanup
+
+- name: Write amazonlinux cleanup result to stdout
+  debug:
+    msg: "cleaned_up_amazonlinux: {{ amazonlinux_is_cleaned_up.changed | default(false) }}"
+  when:
+  - amazonlinux_is_cleaned_up is defined
+  - ansible_facts['distribution'] == "Amazon"
+  tags: cleanup
