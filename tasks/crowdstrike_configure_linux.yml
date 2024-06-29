@@ -1,22 +1,10 @@
----
 - name: Configure Crowdstrike
-  command: /opt/CrowdStrike/falconctl -s -f --cid={{ crowdstrike_cid }}"
+  command: /opt/CrowdStrike/falconctl -s -f --cid={{ crowdstrike_cid }}
   register: crowdstrike_configured
-  tags: configure
-
-- name: Set fact based on CrowdStrike Configuration Status
-  set_fact:
-    crowdstrike_configured: true
-  when: crowdstrike_configured.rc == 0
-  tags: configure
-
-- name: Set fact based on CrowdStrike Configuration Status
-  set_fact:
-    crowdstrike_configured: false
-  when: crowdstrike_configured.rc != 0
   tags: configure
 
 - name: Write CrowdStrike Configuration Status to stdout
   debug:
-    var: crowdstrike_configured
+    msg: "crowdstrike_configured: {{ 'true' if crowdstrike_configured.rc == 0 else 'false' }}"
+  when: crowdstrike_configured is defined
   tags: configure

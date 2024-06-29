@@ -3,12 +3,8 @@
   hosts: all
   gather_facts: true
   become: true
-  become_method: "{{ (ansible_facts['os_family'] == 'Windows') | ternary('runas', 'sudo') }}"
-  become_user: "{{ svc_user }}"
-  remote_user: "{{ svc_user }}"
-
-  vars_files:
-    - vars/{{ ansible_facts['os_family'] }}.yml
+  become_method: dzdo
+  # become_user: "{{ svc_user }}"
 
   tasks:
     - name: wait for hosts to be available
@@ -21,7 +17,5 @@
     - name: Configure CrowdStrike agent in Linux
       include_role:
         name: ../../
-        tasks_from: crowdstrike_connfigure_linux
-      when:
-        - ansible_facts['os_family'] == "Linux"
+        tasks_from: crowdstrike_configure_linux
       tags: configure
