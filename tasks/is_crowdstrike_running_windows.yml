@@ -1,4 +1,3 @@
----
 # Check if crowdstrike is running (Windows)
 - name: Check if CrowdStrike is running
   win_service:
@@ -7,12 +6,8 @@
   register: result
   tags: status
 
-- name: Crowdstrike running status (Windows)
-  set_fact:
-    crowdstrike_state: "{{ result.state }}"
-  tags: status
-
 - name: Write CrowdStrike running Status to stdout
   debug:
-    var: crowdstrike_state
+    msg: "crowdstrike_running_state: {{ result.state }}"
+  when: result is defined
   tags: status
