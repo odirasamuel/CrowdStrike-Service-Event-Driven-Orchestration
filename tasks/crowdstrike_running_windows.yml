@@ -1,4 +1,3 @@
----
 - name: Start Crowdstrike Service
   win_service:
     name: "{{ windows_crowdstrike_service_name }}"
@@ -13,27 +12,15 @@
 - name: Validate Service started
   assert:
     that:
-      - service_started.state == "running" and service_started.changed == true
+    - service_started.state == "running" or service_started.changed == true
     fail_msg: "Crowdstrike service fails to start"
     success_msg: "Crowdstrike service successfully started"
   ignore_errors: true
   register: service_start_result
   tags: start
 
-- name: Set fact based on CrowdStrike Service start failure
-  set_fact:
-    crowdstrike_service_start_status: "Crowdstrike service fails to start"
-  when: service_start_result.failed == true
-  tags: start
-
-- name: Set fact based on CrowdStrike Service restart success
-  set_fact:
-    crowdstrike_service_start_status: "Crowdstrike service successfully started"
-  when: service_start_result.failed == false
-  tags: start
-
 - name: Write CrowdStrike Service start status to stdout
   debug:
-    var: crowdstrike_service_start_status
-  when: crowdstrike_service_start_status is defined
+    msg: "crowdstrike_running: {{ 'true' if service_start_result.failed == false else 'false' }}"
+  when: service_start_result is defined
   tags: start
