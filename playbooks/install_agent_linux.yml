@@ -1,0 +1,21 @@
+---
+- name: Install CrowdStrike Agent
+  hosts: all
+  gather_facts: true
+  become: true
+  become_method: dzdo
+  # become_user: "{{ svc_user }}"
+
+  tasks:
+    - name: wait for hosts to be available
+      wait_for_connection:
+        connect_timeout: 60
+        timeout: 900
+        sleep: 60
+      tags: always
+
+    - name: Install CrowdStrike agent in Linux
+      include_role:
+        name: ../../
+        tasks_from: crowdstrike_install_linux
+      tags: install

@@ -1,163 +1,249 @@
----
-- name: Check if CrowdStrike service exists
+# This playbook installs the CrowdStrike Falcon agent on Linux systems
+- name: Get service facts
   service_facts:
   register: service_facts
   tags: install
 
+- name: Check if destination path exists
+  stat:
+    path: "{{ local_path_linux }}"
+  register: path_exists
+  tags: install
+
+- name: Create destination path if it does not exist
+  file:
+    path: "{{ local_path_linux }}"
+    state: directory
+  when: path_exists.stat.exists == false
+  tags: install
+
+# Download CrowdStrike Installer Packages
 - name: Download CrowdStrike Installer Packages
   block:
-    - name: Download Crowdstrike Installer file for Debian
-      aws_s3:
-        region: "{{ aws_region }}"
-        mode: get
-        bucket: "{{ s3_location }}"
-        object: "{{ software_bucket_linux }}/{{ installer_debian }}"
-        dest: "{{ local_path_linux }}/{{ installer_debian }}"
-        access_key: "{{ access_key }}"
-        secret_key: "{{ secret_key }}"
-        no_log: true
-      when: (ansible_facts['distribution'] == "Debian")
+  - name: Download Crowdstrike Installer file for Debian
+    aws_s3:
+      region: "{{ aws_region }}"
+      mode: get
+      bucket: "{{ s3_location }}"
+      object: "{{ software_bucket_linux }}/{{ installer_debian }}"
+      dest: "{{ local_path_linux }}/{{ installer_debian }}"
+      access_key: "{{ access_key }}"
+      secret_key: "{{ secret_key }}"
+    register: download_debian
+    when:
+    - ansible_facts['distribution'] == "Debian"
+    no_log: true
 
-    - name: Download Crowdstrike Installer file for Oracle
-      aws_s3:
-        region: "{{ aws_region }}"
-        mode: get
-        bucket: "{{ s3_location }}"
-        object: "{{ software_bucket_linux }}/{{ installer_oracle }}"
-        dest: "{{ local_path_linux }}/{{ installer_oracle }}"
-        access_key: "{{ access_key }}"
-        secret_key: "{{ secret_key }}"
-        no_log: true
-      when: (ansible_facts['distribution'] == "Oracle")
+  - name: Download Crowdstrike Installer file for Oracle
+    aws_s3:
+      region: "{{ aws_region }}"
+      mode: get
+      bucket: "{{ s3_location }}"
+      object: "{{ software_bucket_linux }}/{{ installer_oracle }}"
+      dest: "{{ local_path_linux }}/{{ installer_oracle }}"
+      access_key: "{{ access_key }}"
+      secret_key: "{{ secret_key }}"
+    register: download_oracle
+    when:
+    - ansible_facts['distribution'] == "OracleLinux"
+    no_log: true
 
-    - name: Download Crowdstrike Installer file for RHEL
-      aws_s3:
-        region: "{{ aws_region }}"
-        mode: get
-        bucket: "{{ s3_location }}"
-        object: "{{ software_bucket_linux }}/{{ installer_rhel }}"
-        dest: "{{ local_path_linux }}/{{ installer_rhel }}"
-        access_key: "{{ access_key }}"
-        secret_key: "{{ secret_key }}"
-        no_log: true
-      when: (ansible_facts['distribution'] == "RHEL")
+  - name: Download Crowdstrike Installer file for RHEL
+    aws_s3:
+      region: "{{ aws_region }}"
+      mode: get
+      bucket: "{{ s3_location }}"
+      object: "{{ software_bucket_linux }}/{{ installer_rhel }}"
+      dest: "{{ local_path_linux }}/{{ installer_rhel }}"
+      access_key: "{{ access_key }}"
+      secret_key: "{{ secret_key }}"
+    register: download_rhel
+    when:
+    - ansible_facts['distribution'] == "RedHat"
+    no_log: true
 
-    - name: Download Crowdstrike Installer file for AmazonLinux
-      aws_s3:
-        region: "{{ aws_region }}"
-        mode: get
-        bucket: "{{ s3_location }}"
-        object: "{{ software_bucket_linux }}/{{ installer_amazonlinux }}"
-        dest: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
-        access_key: "{{ access_key }}"
-        secret_key: "{{ secret_key }}"
-        no_log: true
-      when: (ansible_facts['distribution'] == "Amazon")
-  register: result
-  when: linux_crowdstrike_service_name not in service_facts.ansible_facts.services
+  - name: Download Crowdstrike Installer file for AmazonLinux
+    aws_s3:
+      region: "{{ aws_region }}"
+      mode: get
+      bucket: "{{ s3_location }}"
+      object: "{{ software_bucket_linux }}/{{ installer_amazonlinux }}"
+      dest: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
+      access_key: "{{ access_key }}"
+      secret_key: "{{ secret_key }}"
+    register: download_amazonlinux
+    when:
+    - ansible_facts['distribution'] == "Amazon"
+    no_log: true
+  when: "linux_cs_service not in service_facts.ansible_facts.services"
   tags: install
 
+  rescue:
+  - name: Write out error message
+    debug:
+      msg: "CrowdStrike Installer packages could not be downloaded or task was skipped due to service already being installed"
+    tags: install
+
+# Check if CrowdStrike installer packages were downloaded
 - name: Check if CrowdStrike installer packages were downloaded
   block:
-    - name: Check if Crowdstrike file was downloaded for Debian
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_debian }}"
-      register: debian_file_downloaded
-      when: (ansible_facts['distribution'] == "Debian")
+  - name: Check if Crowdstrike file was downloaded for Debian
+    stat:
+      path: "{{ local_path_linux }}/{{ installer_debian }}"
+    register: debian_file_downloaded
+    when:
+    - download_debian.changed == true
+    - ansible_facts['distribution'] == "Debian"
+    no_log: true
 
-    - name: Check if Crowdstrike file was downloaded for Oracle
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_oracle }}"
-      register: oracle_file_downloaded
-      when: (ansible_facts['distribution'] == "Oracle")
+  - name: Check if Crowdstrike file was downloaded for Oracle
+    stat:
+      path: "{{ local_path_linux }}/{{ installer_oracle }}"
+    register: oracle_file_downloaded
+    when:
+    - download_oracle.changed == true
+    - ansible_facts['distribution'] == "OracleLinux"
+    no_log: true
 
-    - name: Check if Crowdstrike file was downloaded for RHEL
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_rhel }}"
-      register: rhel_file_downloaded
-      when: (ansible_facts['distribution'] == "RHEL")
+  - name: Check if Crowdstrike file was downloaded for RHEL
+    stat:
+      path: "{{ local_path_linux }}/{{ installer_rhel }}"
+    register: rhel_file_downloaded
+    when:
+    - download_rhel.changed == true
+    - ansible_facts['distribution'] == "RedHat"
+    no_log: true
 
-    - name: Check if Crowdstrike file was downloaded for AmazonLinux
-      stat:
-        path: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
-      register: amazonlinux_file_downloaded
-      when: (ansible_facts['distribution'] == "Amazon"))
-  when: result.changed == true
+  - name: Check if Crowdstrike file was downloaded for AmazonLinux
+    stat:
+      path: "{{ local_path_linux }}/{{ installer_amazonlinux }}"
+    register: amazonlinux_file_downloaded
+    when:
+    - download_amazonlinux.changed == true
+    - ansible_facts['distribution'] == "Amazon"
+    no_log: true
   tags: install
 
+  rescue:
+  - name: Write out error message
+    debug:
+      msg: "CrowdStrike Installer packages not found in local path"
+    tags: install
+
+# Set fact based on CrowdStrike Installer packages download status
 - name: Set fact based on CrowdStrike Installer packages download status
   block:
-    - name: Set fact based on files download status for Debian
-      set_fact:
-        installer_files_downloaded: true
-      when: (ansible_facts['distribution'] == "Debian") and (debian_file_downloaded.stat.exists == true)
+  - name: Set fact based on files download status for Debian
+    set_fact:
+      debian_installer_files_downloaded: true
+    when:
+    - ansible_facts['distribution'] == "Debian"
+    - debian_file_downloaded.stat.exists == true
 
-    - name: Set fact based on files download status for Oracle
-      set_fact:
-        installer_files_downloaded: true
-      when: (ansible_facts['distribution'] == "Oracle") and (oracle_file_downloaded.stat.exists == true)
+  - name: Set fact based on files download status for Oracle
+    set_fact:
+      oracle_installer_files_downloaded: true
+    when:
+    - ansible_facts['distribution'] == "OracleLinux"
+    - oracle_file_downloaded.stat.exists == true
 
-    - name: Set fact based on files download status for RHEL
-      set_fact:
-        installer_files_downloaded: true
-      when: (ansible_facts['distribution'] == "RHEL") and (rhel_file_downloaded.stat.exists == true)
+  - name: Set fact based on files download status for RHEL
+    set_fact:
+      rhel_installer_files_downloaded: true
+    when:
+    - ansible_facts['distribution'] == "RedHat"
+    - rhel_file_downloaded.stat.exists == true
 
-    - name: Set fact based on files download status for AmazonLinux
-      set_fact:
-        installer_files_downloaded: true
-      when: (ansible_facts['distribution'] == "Amazon")) and (amazonlinux_file_downloaded.stat.exists == true)
+  - name: Set fact based on files download status for AmazonLinux
+    set_fact:
+      amazonlinux_installer_files_downloaded: true
+    when:
+    - ansible_facts['distribution'] == "Amazon"
+    - amazonlinux_file_downloaded.stat.exists == true
   tags: install
 
+  rescue:
+  - name: Write out error message
+    debug:
+      msg: "Could not assertain that CrowdStrike Installer packages have been successfully downloaded"
+    tags: install
+
+# Write CrowdStrike Installer packages download status to stdout
 - name: Install CrowdStrike Service
   block:
-    - name: Install Crowdstrike for Debian
-      command: dpkg -i {{ installer_debian }}
-      args:
-        chdir: "{{ local_path_linux }}/"
-      register: crowdstrike_installed
-      when:
-        - (ansible_facts['distribution'] == "Debian")
-      
-    - name: Install Crowdstrike for Oracle
-      command: yum install {{ installer_oracle }}
-      args:
-        chdir: "{{ local_path_linux }}/"
-      register: crowdstrike_installed
-      when: 
-        - (ansible_facts['distribution'] == "Oracle")
+  - name: Install Crowdstrike for Debian
+    command: dpkg -i {{ installer_debian }} -y
+    args:
+      chdir: "{{ local_path_linux }}/"
+    register: crowdstrike_installed_debian
+    when:
+    - ansible_facts['distribution'] == "Debian"
+    - debian_installer_files_downloaded == true
+    no_log: true
 
-    - name: Install Crowdstrike for RHEL
-      command: yum install {{ installer_rhel }}
-      args:
-        chdir: "{{ local_path_linux }}/"
-      register: crowdstrike_installed
-      when: 
-        - (ansible_facts['distribution'] == "RHEL")
+  - name: Install Crowdstrike for Oracle
+    command: yum install {{ installer_oracle }} -y
+    args:
+      chdir: "{{ local_path_linux }}/"
+    register: crowdstrike_installed_oracle
+    when:
+    - ansible_facts['distribution'] == "OracleLinux"
+    - oracle_installer_files_downloaded == true
+    no_log: true
 
-    - name: Install Crowdstrike for Amazon Linux
-      command: yum install {{ installer_amazonlinux }}
-      args:
-        chdir: "{{ local_path_linux }}/"
-      register: crowdstrike_installed
-      when: 
-        - (ansible_facts['distribution'] == "Amazon")
-  when: installer_files_downloaded == true
+  - name: Install Crowdstrike for RHEL
+    command: yum install {{ installer_rhel }} -y
+    args:
+      chdir: "{{ local_path_linux }}/"
+    register: crowdstrike_installed_rhel
+    when:
+    - ansible_facts['distribution'] == "RedHat"
+    - rhel_installer_files_downloaded == true
+    no_log: true
+
+  - name: Install Crowdstrike for Amazon Linux
+    command: yum install {{ installer_amazonlinux }} -y
+    args:
+      chdir: "{{ local_path_linux }}/"
+    register: crowdstrike_installed_amazonlinux
+    when:
+    - ansible_facts['distribution'] == "Amazon"
+    - amazonlinux_installer_files_downloaded == true
+    no_log: true
   tags: install
 
-- name: Set fact based on CrowdStrike Service install success status
-  set_fact:
-    crowdstrike_installed: true
-  when: crowdstrike_installed.rc == 0
-  tags: install
+  rescue:
+  - name: Write out error message
+    debug:
+      msg: "CrowdStrike Service could not be installed successfully"
+    tags: install
 
-- name: Set fact based on CrowdStrike Service install failure status
-  set_fact:
-    crowdstrike_installed: false
-  when: crowdstrike_installed.rc != 0
-  tags: install
-
-- name: Write CrowdStrike Service install status to stdout
+# Write CrowdStrike Service install status to stdout
+- name: Write CrowdStrike Service install status to stdout debian
   debug:
-    var: crowdstrike_installed
-  when: crowdstrike_installed is defined
+    msg: "crowdstrike_installed_debian: {{ 'true' if crowdstrike_installed_debian.rc == 0 else 'false' }}"
+  when:
+  - ansible_facts['distribution'] == "Debian"
   tags: install
+
+- name: Write CrowdStrike Service install status to stdout oracle
+  debug:
+    msg: "crowdstrike_installed_oracle: {{ 'true' if crowdstrike_installed_oracle.rc == 0 else 'false' }}"
+  when:
+  - ansible_facts['distribution'] == "OracleLinux"
+  tags: install
+
+- name: Write CrowdStrike Service install status to stdout rhel
+  debug:
+    msg: "crowdstrike_installed_rhel: {{ 'true' if crowdstrike_installed_rhel.rc == 0 else 'false' }}"
+  when:
+  - ansible_facts['distribution'] == "RedHat"
+  tags: install
+
+- name: Write CrowdStrike Service install status to stdout amazonlinux
+  debug:
+    msg: "crowdstrike_installed_amazonlinux: {{ 'true' if crowdstrike_installed_amazonlinux.rc == 0 else 'false' }}"
+  when:
+  - ansible_facts['distribution'] == "Amazon"
+  tags: install
+
