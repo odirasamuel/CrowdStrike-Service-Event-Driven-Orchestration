@@ -1,17 +1,12 @@
----
 # Check if crowdstrike is installed (Windows)
 - name: Check if CrowdStrike is installed
-  win_service: 
+  win_service:
     name: "{{ windows_crowdstrike_service_name }}"
   register: result
   tags: status
 
-- name: Set fact based on CrowdStrike Service install status
-  set_fact:
-    crowdstrike_installed: "{{ result.exists }}"
-  tags: status
-
-- name: Write CrowdStrike Service install status to stdout 
+- name: Write CrowdStrike Service install status to stdout
   debug:
-    var: crowdstrike_installed
+    msg: "crowdstrike_installed: {{ result.exists }}"
+  when: result is defined
   tags: status
